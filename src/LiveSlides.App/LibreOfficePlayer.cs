@@ -62,21 +62,7 @@ public sealed class LibreOfficePlayer : IPresentationPlayer
     public IntPtr Window { get; private set; }
     public IntPtr PresenterWindow { get; private set; }
 
-    /// <summary>
-    /// One line per LibreOffice operation in player.log (data folder): when a presentation does
-    /// not go on air, this says which instance did what. Kept small: restarted at each run.
-    /// </summary>
-    private static void Trace(string message)
-    {
-        try
-        {
-            var file = Path.Combine(App.DataFolder, "player.log");
-            if (!TraceStarted) { TraceStarted = true; File.WriteAllText(file, ""); }
-            File.AppendAllText(file, $"{DateTime.Now:HH:mm:ss.fff} {message}{Environment.NewLine}");
-        }
-        catch { /* diagnostics only */ }
-    }
-    private static bool TraceStarted;
+    private static void Trace(string message) => PlayerLog.Write("LibreOffice " + message);
 
     private Slot? Holding(string path)
         => _slots.FirstOrDefault(s => string.Equals(s.Path, path, StringComparison.OrdinalIgnoreCase));

@@ -78,6 +78,7 @@ public static class PresentationConverter
                     catch (Exception ex) when (soffice is not null && !token.IsCancellationRequested)
                     {
                         App.LogError(ex);
+                        PlayerLog.Write($"PowerPoint conversion of {Path.GetFileName(sourcePath)} FAILED ({ex.Message}): LibreOffice instead");
                         foreach (var leftover in Directory.GetFiles(workFolder)) File.Delete(leftover);
                         await ConvertWithLibreOfficeAsync(soffice, sourcePath, workFolder, token);
                     }
@@ -169,6 +170,7 @@ public static class PresentationConverter
                 // Open(FileName, ReadOnly: true, Untitled: false, WithWindow: false); MsoTriState true = -1.
                 presentation = app.Presentations.Open(sourcePath, -1, 0, 0);
                 presentation.SaveAs(pdfPath, 32 /* ppSaveAsPDF */);
+                PlayerLog.Write($"PowerPoint conversion of {Path.GetFileName(sourcePath)} done");
                 presentation.Close();
                 done.SetResult();
             }
@@ -180,10 +182,31 @@ public static class PresentationConverter
             {
                 // PowerPoint runs as a single instance: it may be playing the show right now, or be
                 // the operator's own. Quit only if nothing else is open in it.
-                try { if (app is not null && (int)app.Presentations.Count == 0) app.Quit(); } catch { /* best effort */ }
+                var quitPid = 0;
+                try
+                {
+                    if (app is not null && (int)app.Presentations.Count == 0)
+                    {
+                        quitPid = NativeWindows.ProcessIdOf(new IntPtr((int)app.HWND));
+                        app.Quit();
+                    }
+                }
+                catch { /* best effort */ }
                 // Release the COM references at once, so PowerPoint does not linger in the background.
                 try { if (presentation is not null) Marshal.FinalReleaseComObject(presentation); } catch { /* already released */ }
                 try { if (app is not null) Marshal.FinalReleaseComObject(app); } catch { /* already released */ }
+                // Wait until it has really gone: PowerPoint takes a few seconds to close, and asking
+                // for it in the meantime (the next conversion, the show) attaches to the instance
+                // that is closing, which answers only with errors.
+                if (quitPid > 0)
+                {
+                    try
+                    {
+                        using var closing = Process.GetProcessById(quitPid);
+                        if (!closing.WaitForExit(15000)) PlayerLog.Write("PowerPoint conversion: PowerPoint still closing after 15 s");
+                    }
+                    catch (ArgumentException) { /* already gone */ }
+                }
             }
         })
         { IsBackground = true, Name = "PowerPoint export" };

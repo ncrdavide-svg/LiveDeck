@@ -59,6 +59,8 @@ Prima versione (0.1.0) scritta in una sessione cloud (Linux). Compila senza erro
 - Scartati con motivazione: vedi CLAUDE.md, «Insidie note».
 - La conversione e la riproduzione con PowerPoint restano mai provate (qui PowerPoint non c'è).
 
+**17 nov 2026 — prima prova con PowerPoint (su un altro PC, versione 0.2.1): non funziona.** Niente animazioni, e sul terzo schermo la stessa immagine dell'uscita invece della visualizzazione relatore. Con ogni probabilità la riproduzione con PowerPoint falliva e l'app ripiegava sulle immagini fisse. Nella 0.2.2: correzioni delle cause probabili (vedi CLAUDE.md) e registro dettagliato `player.log`. **Prossimo passo: l'utente prova la 0.2.2 sul PC con PowerPoint e manda `player.log` ed `errors.log`** da `%LOCALAPPDATA%\LiveSlides`.
+
 Vecchie note sui video (player rimosso, restano solo come storia): pausa e riavvio, avanzamento automatico a fine video, barra del tempo rimanente, volume, passaggio diretto video → video senza tappo (previsto nel codice ma non provato).
 
 ## Provato su Windows

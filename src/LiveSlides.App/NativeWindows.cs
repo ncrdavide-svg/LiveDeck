@@ -93,7 +93,7 @@ internal static class NativeWindows
     /// is moved before it has much chance to show up where it should not.
     /// </summary>
     public static async Task<IntPtr> MoveNewWindowAsync(int processId, IReadOnlyCollection<IntPtr> exclude,
-        Func<IntPtr, bool>? accept, ScreenBounds target, int timeoutMs)
+        Func<IntPtr, bool>? accept, ScreenBounds target, int timeoutMs, bool requireTitle = true, int minWidth = 640, int minHeight = 480)
     {
         var clock = System.Diagnostics.Stopwatch.StartNew();
         while (clock.ElapsedMilliseconds < timeoutMs)
@@ -102,8 +102,8 @@ internal static class NativeWindows
             EnumWindows((hwnd, _) =>
             {
                 GetWindowThreadProcessId(hwnd, out var pid);
-                if (pid != processId || exclude.Contains(hwnd) || !IsWindowVisible(hwnd) || GetWindowTextLength(hwnd) == 0) return true;
-                if (!GetWindowRect(hwnd, out var r) || r.Right - r.Left < 640 || r.Bottom - r.Top < 480) return true;
+                if (pid != processId || exclude.Contains(hwnd) || !IsWindowVisible(hwnd) || (requireTitle && GetWindowTextLength(hwnd) == 0)) return true;
+                if (!GetWindowRect(hwnd, out var r) || r.Right - r.Left < minWidth || r.Bottom - r.Top < minHeight) return true;
                 if (accept is not null && !accept(hwnd)) return true;
                 found = hwnd;
                 return false;
@@ -118,6 +118,23 @@ internal static class NativeWindows
             await Task.Delay(5);
         }
         return IntPtr.Zero;
+    }
+
+    /// <summary>The visible top-level windows of a process, one per line (class, title, rectangle): for player.log.</summary>
+    public static string Describe(int processId)
+    {
+        var lines = new List<string>();
+        EnumWindows((hwnd, _) =>
+        {
+            GetWindowThreadProcessId(hwnd, out var pid);
+            if (pid != processId || !IsWindowVisible(hwnd)) return true;
+            GetWindowRect(hwnd, out var r);
+            var title = new StringBuilder(200);
+            GetWindowText(hwnd, title, title.Capacity);
+            lines.Add($"    0x{hwnd.ToInt64():X} class={ClassName(hwnd)} [{title}] {r.Left},{r.Top} {r.Right - r.Left}x{r.Bottom - r.Top}");
+            return true;
+        }, IntPtr.Zero);
+        return lines.Count == 0 ? "    (no visible window)" : string.Join(Environment.NewLine, lines);
     }
 
     public static int ProcessIdOf(IntPtr hwnd)
@@ -198,6 +215,7 @@ internal static class NativeWindows
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out int processId);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hwnd);
     [DllImport("user32.dll")] private static extern bool IsZoomed(IntPtr hwnd);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr hwnd, StringBuilder text, int size);
     [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hwnd, int command);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr hwnd, StringBuilder name, int size);
     [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr hwnd);

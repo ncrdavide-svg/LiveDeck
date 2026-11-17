@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 
@@ -8,15 +10,15 @@ namespace LiveSlides.App;
 /// Plays presentations with Microsoft PowerPoint itself, through COM automation: the file runs
 /// exactly as its author designed it. All COM calls happen on one dedicated STA thread.
 ///
-/// NOT YET TRIED ON A REAL POWERPOINT (the development PC has none): written from the
-/// documented object model. See docs/STATO-PROGETTO.md.
+/// Written from the documented object model and not yet confirmed on a PC with PowerPoint: every
+/// step is written to player.log (data folder) so a failed try says what happened.
 /// </summary>
 public sealed class PowerPointPlayer : IPresentationPlayer
 {
     // MsoTriState / PowerPoint enums (late binding: no interop assembly to ship).
     private const int MsoTrue = -1, MsoFalse = 0;
     private const int PpShowTypeSpeaker = 1;
-    private const int PpSlideShowRunning = 1, PpSlideShowPaused = 2, PpSlideShowDone = 5;
+    private const int PpSlideShowPaused = 2, PpSlideShowRunning = 1, PpSlideShowDone = 5;
 
     private readonly Type _type;
     private readonly BlockingCollection<Action> _work = new();
@@ -39,6 +41,8 @@ public sealed class PowerPointPlayer : IPresentationPlayer
     public string EngineName => "PowerPoint";
     public IntPtr Window { get; private set; }
     public IntPtr PresenterWindow { get; private set; }
+
+    private static void Log(string message) => PlayerLog.Write("PowerPoint " + message);
 
     private Task<T> OnSta<T>(Func<T> work)
     {
@@ -64,6 +68,57 @@ public sealed class PowerPointPlayer : IPresentationPlayer
         }
     }
 
+    /// <summary>
+    /// The PowerPoint instance, started if needed and checked alive. PowerPoint runs as a single
+    /// instance per PC, and the PDF conversion closes it when it has nothing open: an instance
+    /// kept from before may be gone, and one asked for just as it closes answers with errors for a
+    /// moment. Both cases get a fresh, working instance here.
+    /// </summary>
+    private dynamic Instance(ScreenBounds bounds)
+    {
+        if (_app is not null)
+        {
+            try { _ = (string)_app.Version; return _app; }
+            catch (Exception ex)
+            {
+                Log($"instance gone ({ex.Message}): starting a new one");
+                Forget();
+            }
+        }
+
+        PreferMonitor(bounds);
+        Exception? last = null;
+        for (var attempt = 1; attempt <= 10; attempt++)
+        {
+            try
+            {
+                dynamic app = Activator.CreateInstance(_type)!;
+                var version = (string)app.Version; // fails if it is the one that is closing
+                Log($"instance ready (PowerPoint {version}, attempt {attempt})");
+                _app = app;
+                return app;
+            }
+            catch (Exception ex)
+            {
+                last = ex;
+                Log($"instance not ready (attempt {attempt}): {ex.Message}");
+                Thread.Sleep(500);
+            }
+        }
+        throw new InvalidOperationException("PowerPoint non risponde: " + last?.Message, last);
+    }
+
+    /// <summary>Drops every reference to a PowerPoint instance that is no longer there.</summary>
+    private void Forget()
+    {
+        _app = null;
+        _presentation = null;
+        _showWindow = null;
+        _loaded.Clear();
+        Window = IntPtr.Zero;
+        PresenterWindow = IntPtr.Zero;
+    }
+
     public async Task LoadAsync(string path, ScreenBounds bounds)
     {
         try { await OnSta(() => { Load(path, bounds); return true; }); }
@@ -72,15 +127,17 @@ public sealed class PowerPointPlayer : IPresentationPlayer
 
     private dynamic Load(string path, ScreenBounds bounds)
     {
-        if (_app is null)
+        var app = Instance(bounds);
+        if (_loaded.TryGetValue(path, out var known))
         {
-            PreferMonitor(bounds);
-            _app = Activator.CreateInstance(_type)!;
+            try { _ = ((dynamic)known).Slides.Count; return known; }
+            catch { _loaded.Remove(path); } // closed meanwhile (by the operator, by PowerPoint)
         }
-        if (_loaded.TryGetValue(path, out var known)) return known;
+        var clock = Stopwatch.StartNew();
         // ReadOnly, not Untitled, WithWindow: false -> no editing window on the operator's screen.
-        dynamic presentation = _app.Presentations.Open(path, MsoTrue, MsoFalse, MsoFalse);
+        dynamic presentation = app.Presentations.Open(path, MsoTrue, MsoFalse, MsoFalse);
         _loaded[path] = presentation;
+        Log($"loaded {Path.GetFileName(path)} in {clock.ElapsedMilliseconds} ms ({(int)presentation.Slides.Count} slides)");
         // At most the one on air plus the one just loaded: a long running order must not keep
         // dozens of files open in PowerPoint.
         foreach (var other in _loaded.Keys.ToList())
@@ -94,7 +151,22 @@ public sealed class PowerPointPlayer : IPresentationPlayer
         return presentation;
     }
 
-    public Task<PlayerState> OpenAsync(string path, ScreenBounds bounds, int startSlide, ScreenBounds? presenter) => OnSta(() =>
+    public async Task<PlayerState> OpenAsync(string path, ScreenBounds bounds, int startSlide, ScreenBounds? presenter)
+    {
+        try { return await OnSta(() => OpenCore(path, bounds, startSlide, presenter)); }
+        catch (Exception ex)
+        {
+            // Most often a PowerPoint instance that went away under us: once more with a new one.
+            Log($"show of {Path.GetFileName(path)} FAILED: {ex.GetType().Name}: {ex.Message} - trying again");
+            return await OnSta(() =>
+            {
+                Forget();
+                return OpenCore(path, bounds, startSlide, presenter);
+            });
+        }
+    }
+
+    private PlayerState OpenCore(string path, ScreenBounds bounds, int startSlide, ScreenBounds? presenter)
     {
         CloseCore();
         _presentation = Load(path, bounds);
@@ -102,29 +174,42 @@ public sealed class PowerPointPlayer : IPresentationPlayer
         settings.ShowType = PpShowTypeSpeaker;
         // PowerPoint's presenter view only when LiveSlides has a screen for it: PowerPoint would
         // put it on a screen of its own choosing, often the operator's.
-        try { settings.ShowPresenterView = presenter is null ? MsoFalse : MsoTrue; } catch { /* PowerPoint older than 2013 */ }
+        try { settings.ShowPresenterView = presenter is null ? MsoFalse : MsoTrue; }
+        catch (Exception ex) { Log("ShowPresenterView not available: " + ex.Message); }
+        // The show is started only now, when it goes on air (never earlier, never paused): its
+        // animations, timings and movies start in front of the audience, once.
         _showWindow = settings.Run();
 
         Window = new IntPtr((int)_showWindow.HWND);
-        if (!NativeWindows.Covers(Window, bounds)) NativeWindows.MoveTo(Window, bounds);
+        var pid = NativeWindows.ProcessIdOf(Window);
+        Log($"show of {Path.GetFileName(path)} started, window 0x{Window.ToInt64():X}; windows of PowerPoint:{Environment.NewLine}{NativeWindows.Describe(pid)}");
+        if (!NativeWindows.Covers(Window, bounds))
+        {
+            NativeWindows.MoveTo(Window, bounds);
+            Log($"show window moved onto the output screen {bounds.X},{bounds.Y} {bounds.Width}x{bounds.Height}");
+        }
 
         PresenterWindow = IntPtr.Zero;
         if (presenter is { } presenterScreen)
         {
-            // NOT TRIED with a real PowerPoint: the presenter view is taken to be PowerPoint's other
-            // big visible window (not the slide show, not the editing window), moved onto the
-            // presenter screen.
+            // The presenter view: PowerPoint's other visible window (not the slide show, not the
+            // editing window), whatever its title; it may appear a moment after the show.
             var show = Window;
-            PresenterWindow = NativeWindows.MoveNewWindowAsync(NativeWindows.ProcessIdOf(show), new[] { show },
-                hwnd => NativeWindows.ClassName(hwnd) != "PPTFrameClass", presenterScreen, 3000).GetAwaiter().GetResult();
+            var showClass = NativeWindows.ClassName(show);
+            PresenterWindow = NativeWindows.MoveNewWindowAsync(pid, new[] { show },
+                hwnd => NativeWindows.ClassName(hwnd) is var name && name != "PPTFrameClass" && name != showClass,
+                presenterScreen, 4000, requireTitle: false, minWidth: 400, minHeight: 300).GetAwaiter().GetResult();
+            Log(PresenterWindow == IntPtr.Zero
+                ? "presenter view NOT FOUND (the presenter screen shows the slide picture instead)"
+                : $"presenter view 0x{PresenterWindow.ToInt64():X} ({NativeWindows.ClassName(PresenterWindow)}) moved onto the presenter screen");
         }
 
         var view = _showWindow.View;
         if (startSlide > 0) view.GotoSlide(startSlide + 1, MsoTrue);
-        // Frozen until LiveSlides uncovers it, so nothing plays unseen behind the tappo.
-        try { view.State = PpSlideShowPaused; } catch { /* stays running: harmless */ }
-        return ReadState();
-    });
+        var state = ReadState();
+        Log($"on air: slide {state.Slide + 1} of {state.SlideCount}, state {(int)view.State}");
+        return state;
+    }
 
     /// <summary>
     /// PowerPoint has no API to choose the slide show monitor; it reads this per-user option,
@@ -142,11 +227,13 @@ public sealed class PowerPointPlayer : IPresentationPlayer
                 if (key is null) continue;
                 key.SetValue("DisplayMonitor", device, RegistryValueKind.String);
                 key.SetValue("UseAutoMonSelection", 0, RegistryValueKind.DWord);
+                Log($"slide show monitor set to {device} (Office {version})");
             }
         }
         catch (Exception ex) { App.LogError(ex); }
     }
 
+    /// <summary>The show is never paused (see OpenCore); this only undoes a pause from elsewhere.</summary>
     public Task BeforeRevealAsync() => OnSta(() =>
     {
         try { if (_showWindow is not null && (int)_showWindow.View.State == PpSlideShowPaused) _showWindow.View.State = PpSlideShowRunning; }
@@ -154,16 +241,16 @@ public sealed class PowerPointPlayer : IPresentationPlayer
         return true;
     });
 
-    public Task<PlayerState> NextAsync() => OnSta(() => { TryView(view => view.Next()); return ReadState(); });
-    public Task<PlayerState> PreviousAsync() => OnSta(() => { TryView(view => view.Previous()); return ReadState(); });
-    public Task<PlayerState> GoToAsync(int slide) => OnSta(() => { TryView(view => view.GotoSlide(slide + 1, MsoTrue)); return ReadState(); });
+    public Task<PlayerState> NextAsync() => OnSta(() => { TryView("next", view => view.Next()); return ReadState(); });
+    public Task<PlayerState> PreviousAsync() => OnSta(() => { TryView("previous", view => view.Previous()); return ReadState(); });
+    public Task<PlayerState> GoToAsync(int slide) => OnSta(() => { TryView("go to", view => view.GotoSlide(slide + 1, MsoTrue)); return ReadState(); });
     public Task<PlayerState> GetStateAsync() => OnSta(ReadState);
 
-    private void TryView(Action<dynamic> action)
+    private void TryView(string what, Action<dynamic> action)
     {
-        if (_showWindow is null) return;
+        if (_showWindow is null) { Log(what + ": no show running"); return; }
         try { action(_showWindow.View); }
-        catch (COMException) { /* the show window is gone: ReadState reports it */ }
+        catch (Exception ex) { Log($"{what} FAILED: {ex.Message}"); }
     }
 
     private PlayerState ReadState()
@@ -182,7 +269,11 @@ public sealed class PowerPointPlayer : IPresentationPlayer
                 AtStart: position <= 1 && clickIndex <= 0,
                 AtEnd: position >= count && clickIndex >= clickCount);
         }
-        catch (COMException) { return PlayerState.Stopped; }
+        catch (Exception ex)
+        {
+            Log("state not readable (show over?): " + ex.Message);
+            return PlayerState.Stopped;
+        }
     }
 
     public Task CloseAsync() => OnSta(() => { CloseCore(); Unload(); return true; });

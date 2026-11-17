@@ -5,7 +5,7 @@
 ; is installed (PDF files work in any case).
 
 #ifndef AppVersion
-  #define AppVersion "0.2.1"
+  #define AppVersion "0.2.2"
 #endif
 #ifndef PublishDir
   #define PublishDir "..\artifacts\publish"

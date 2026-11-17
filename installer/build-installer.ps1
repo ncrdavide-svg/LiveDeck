@@ -1,8 +1,8 @@
 # Builds artifacts\installer\LiveSlides-Setup-<version>.exe
 # Requires: .NET 9 SDK, Inno Setup 6 (winget install JRSoftware.InnoSetup).
-# Usage: powershell -ExecutionPolicy Bypass -File installer\build-installer.ps1 [-Version 0.2.2]
+# Usage: powershell -ExecutionPolicy Bypass -File installer\build-installer.ps1 [-Version 0.2.3]
 param(
-    [string]$Version = "0.2.1"
+    [string]$Version = "0.2.2"
 )
 
 $ErrorActionPreference = "Stop"
