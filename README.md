@@ -6,13 +6,13 @@
 
 <p align="center">
   <a href="https://github.com/ncrdavide-svg/LiveSlides/releases/latest/download/LiveSlides-Setup.exe">
-    <img src="https://img.shields.io/github/v/release/ncrdavide-svg/LiveSlides?label=%E2%AC%87%20SCARICA%20PER%20WINDOWS&style=for-the-badge&color=2ea44f" alt="Scarica LiveSlides per Windows" height="48">
+    <img src="docs/download-button.png" width="440" alt="⬇ Scarica LiveSlides — installer per Windows 10/11, ultima versione">
   </a>
 </p>
 
 <p align="center">
-  <b><a href="https://github.com/ncrdavide-svg/LiveSlides/releases/latest/download/LiveSlides-Setup.exe">⬇ Scarica l'installer (LiveSlides-Setup.exe)</a></b><br>
-  Windows 10/11 a 64 bit · <a href="https://github.com/ncrdavide-svg/LiveSlides/releases">tutte le versioni e le novità</a>
+  <img src="https://img.shields.io/github/v/release/ncrdavide-svg/LiveSlides?label=versione&color=2ea44f" alt="versione"><br>
+  Il pulsante scarica direttamente <code>LiveSlides-Setup.exe</code> · <a href="https://github.com/ncrdavide-svg/LiveSlides/releases">tutte le versioni e le novità</a>
 </p>
 
 ---
