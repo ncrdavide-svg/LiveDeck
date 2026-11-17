@@ -12,7 +12,7 @@ Repository: https://github.com/ncrdavide-svg/LiveSlides (pubblico, come LiveCue 
 dotnet build LiveSlides.sln
 dotnet test
 dotnet run --project src/LiveSlides.App
-powershell -ExecutionPolicy Bypass -File installer\build-installer.ps1 -Version 0.2.0   # → artifacts\installer\LiveSlides-Setup-<ver>.exe (serve Inno Setup 6)
+powershell -ExecutionPolicy Bypass -File installer\build-installer.ps1 -Version 0.2.2   # → artifacts\installer\LiveSlides-Setup-<ver>.exe + LiveSlides-Setup.exe (serve Inno Setup 6)
 python tools/make_icon.py        # rigenera Assets/LiveSlides.ico (serve Pillow)
 ```
 
@@ -61,4 +61,5 @@ python tools/make_icon.py        # rigenera Assets/LiveSlides.ico (serve Pillow)
 - **PowerPoint è un'istanza unica per PC**: la conversione non deve mai chiuderlo se ha altri file aperti (potrebbe essere lo show in onda o il PowerPoint dell'operatore). Riferimenti COM rilasciati subito con `Marshal.FinalReleaseComObject`.
 - Il bridge di LibreOffice si sceglie da solo una porta libera (argomento `0`) e la comunica su stdout (`READY <porta>`): niente porte scelte prima dall'app, che un altro programma potrebbe occupare nel frattempo.
 - Esaminate e **scartate** (13 nov 2026, revisione esterna): l'handle `HWND` di PowerPoint convertito a `int` è corretto (la proprietà è a 32 bit e Windows garantisce handle a 32 bit significativi); `dispatcher.Invoke` per `/api/status` non fa scattare le presentazioni (le riproduce un altro processo); il riordino col trascinamento ricalcola solo quando si passa su un'altra riga. Tasti globali (`RegisterHotKey`) non fatti di proposito: ruberebbero PagSu/PagGiù a tutti gli altri programmi del PC.
+- **Ogni Release su GitHub deve contenere anche `LiveSlides-Setup.exe`** (lo stesso installer con nome fisso, creato da `build-installer.ps1`): il pulsante di download del README punta a `releases/latest/download/LiveSlides-Setup.exe`, che senza quel file nell'ultima Release dà errore 404.
 - LibreOffice va lanciato con un profilo privato (`-env:UserInstallation`), altrimenti una finestra di LibreOffice già aperta "ingoia" il comando di conversione.
