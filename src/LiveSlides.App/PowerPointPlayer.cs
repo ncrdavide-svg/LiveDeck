@@ -160,6 +160,7 @@ public sealed class PowerPointPlayer : IPresentationPlayer
             Log($"show of {Path.GetFileName(path)} FAILED: {ex.GetType().Name}: {ex.Message} - trying again");
             return await OnSta(() =>
             {
+                CloseCore(); // never leave a show of the failed try running underneath
                 Forget();
                 return OpenCore(path, bounds, startSlide, presenter);
             });
@@ -167,6 +168,18 @@ public sealed class PowerPointPlayer : IPresentationPlayer
     }
 
     private PlayerState OpenCore(string path, ScreenBounds bounds, int startSlide, ScreenBounds? presenter)
+    {
+        try { return OpenCoreUnsafe(path, bounds, startSlide, presenter); }
+        catch
+        {
+            // A show that started but could not be taken over must not stay on screen under our
+            // windows (it would also play its movies, unseen).
+            CloseCore();
+            throw;
+        }
+    }
+
+    private PlayerState OpenCoreUnsafe(string path, ScreenBounds bounds, int startSlide, ScreenBounds? presenter)
     {
         CloseCore();
         _presentation = Load(path, bounds);
@@ -178,11 +191,12 @@ public sealed class PowerPointPlayer : IPresentationPlayer
         catch (Exception ex) { Log("ShowPresenterView not available: " + ex.Message); }
         // The show is started only now, when it goes on air (never earlier, never paused): its
         // animations, timings and movies start in front of the audience, once.
+        var clock = Stopwatch.StartNew();
         _showWindow = settings.Run();
+        Log($"show of {Path.GetFileName(path)} started in {clock.ElapsedMilliseconds} ms");
 
-        Window = new IntPtr((int)_showWindow.HWND);
+        Window = FindShowWindow(bounds);
         var pid = NativeWindows.ProcessIdOf(Window);
-        Log($"show of {Path.GetFileName(path)} started, window 0x{Window.ToInt64():X}; windows of PowerPoint:{Environment.NewLine}{NativeWindows.Describe(pid)}");
         if (!NativeWindows.Covers(Window, bounds))
         {
             NativeWindows.MoveTo(Window, bounds);
@@ -195,9 +209,8 @@ public sealed class PowerPointPlayer : IPresentationPlayer
             // The presenter view: PowerPoint's other visible window (not the slide show, not the
             // editing window), whatever its title; it may appear a moment after the show.
             var show = Window;
-            var showClass = NativeWindows.ClassName(show);
             PresenterWindow = NativeWindows.MoveNewWindowAsync(pid, new[] { show },
-                hwnd => NativeWindows.ClassName(hwnd) is var name && name != "PPTFrameClass" && name != showClass,
+                hwnd => NativeWindows.ClassName(hwnd) != EditingWindowClass,
                 presenterScreen, 4000, requireTitle: false, minWidth: 400, minHeight: 300).GetAwaiter().GetResult();
             Log(PresenterWindow == IntPtr.Zero
                 ? "presenter view NOT FOUND (the presenter screen shows the slide picture instead)"
@@ -209,6 +222,62 @@ public sealed class PowerPointPlayer : IPresentationPlayer
         var state = ReadState();
         Log($"on air: slide {state.Slide + 1} of {state.SlideCount}, state {(int)view.State}");
         return state;
+    }
+
+    // Window classes of PowerPoint: the slide show, and the editing window (never moved).
+    private const string ShowWindowClass = "screenClass";
+    private const string EditingWindowClass = "PPTFrameClass";
+
+    private static HashSet<int> PowerPointProcesses()
+    {
+        var ids = new HashSet<int>();
+        foreach (var process in Process.GetProcessesByName("POWERPNT"))
+            using (process) ids.Add(process.Id);
+        return ids;
+    }
+
+    /// <summary>
+    /// The slide show window. Found among PowerPoint's windows, not asked to PowerPoint: on the
+    /// first PC with PowerPoint, SlideShowWindow.HWND failed ("Error while invoking HWND") right
+    /// after a successful start. It is PowerPoint's "screenClass" window (the one on the output
+    /// screen if there are several); the HWND property is only a last resort.
+    /// </summary>
+    private IntPtr FindShowWindow(ScreenBounds bounds)
+    {
+        var clock = Stopwatch.StartNew();
+        List<NativeWindows.WindowInfo> windows = new();
+        while (clock.ElapsedMilliseconds < 5000)
+        {
+            windows = NativeWindows.VisibleWindows(PowerPointProcesses());
+            var shows = windows.Where(w => w.Class == ShowWindowClass && w.Rect.Width >= 400 && w.Rect.Height >= 300).ToList();
+            var chosen = shows.FirstOrDefault(w => NativeWindows.Covers(w.Handle, bounds))
+                         ?? shows.OrderByDescending(w => (long)w.Rect.Width * w.Rect.Height).FirstOrDefault();
+            if (chosen is not null)
+            {
+                Log($"slide show window found after {clock.ElapsedMilliseconds} ms: {chosen}{Environment.NewLine}  windows of PowerPoint:{Environment.NewLine}    {string.Join(Environment.NewLine + "    ", windows)}");
+                return chosen.Handle;
+            }
+            Thread.Sleep(50);
+        }
+
+        Log($"no {ShowWindowClass} window after 5 s; windows of PowerPoint:{Environment.NewLine}    {string.Join(Environment.NewLine + "    ", windows)}");
+        try
+        {
+            var handle = new IntPtr((int)_showWindow!.HWND);
+            Log($"slide show window from SlideShowWindow.HWND: 0x{handle.ToInt64():X}");
+            return handle;
+        }
+        catch (Exception ex) { Log("SlideShowWindow.HWND failed too: " + ex.Message); }
+
+        // Last resort: PowerPoint's biggest window that is not the editing window.
+        var biggest = windows.Where(w => w.Class != EditingWindowClass)
+            .OrderByDescending(w => (long)w.Rect.Width * w.Rect.Height).FirstOrDefault();
+        if (biggest is not null && biggest.Rect.Width >= 640)
+        {
+            Log($"slide show window taken to be the biggest one: {biggest}");
+            return biggest.Handle;
+        }
+        throw new InvalidOperationException("finestra della presentazione di PowerPoint non trovata");
     }
 
     /// <summary>

@@ -61,6 +61,8 @@ Prima versione (0.1.0) scritta in una sessione cloud (Linux). Compila senza erro
 
 **17 nov 2026 — prima prova con PowerPoint (su un altro PC, versione 0.2.1): non funziona.** Niente animazioni, e sul terzo schermo la stessa immagine dell'uscita invece della visualizzazione relatore. Con ogni probabilità la riproduzione con PowerPoint falliva e l'app ripiegava sulle immagini fisse. Nella 0.2.2: correzioni delle cause probabili (vedi CLAUDE.md) e registro dettagliato `player.log`. **Prossimo passo: l'utente prova la 0.2.2 sul PC con PowerPoint e manda `player.log` ed `errors.log`** da `%LOCALAPPDATA%\LiveSlides`.
 
+**17 nov 2026, seconda prova con PowerPoint (0.2.2)**: dai registri, PowerPoint si avvia, carica (13 slide in 0,6 s) e fa partire lo show, poi la richiesta della sua finestra (`SlideShowWindow.HWND`) fallisce e l'app ripiega sulle immagini fisse. Gli errori «Server RPC non disponibile» della 0.2.1 non ci sono più. Nella 0.2.3 la finestra si cerca tra quelle di PowerPoint invece di chiederla a PowerPoint. **Prossimo passo: prova della 0.2.3 sul PC con PowerPoint, poi di nuovo `player.log`.**
+
 Vecchie note sui video (player rimosso, restano solo come storia): pausa e riavvio, avanzamento automatico a fine video, barra del tempo rimanente, volume, passaggio diretto video → video senza tappo (previsto nel codice ma non provato).
 
 ## Provato su Windows

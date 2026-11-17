@@ -182,12 +182,14 @@ public static class PresentationConverter
             {
                 // PowerPoint runs as a single instance: it may be playing the show right now, or be
                 // the operator's own. Quit only if nothing else is open in it.
-                var quitPid = 0;
+                var quitting = new List<Process>();
                 try
                 {
                     if (app is not null && (int)app.Presentations.Count == 0)
                     {
-                        quitPid = NativeWindows.ProcessIdOf(new IntPtr((int)app.HWND));
+                        // PowerPoint is a single instance: the running POWERPNT is the one being quit.
+                        // (Not found through app.HWND: PowerPoint's HWND properties proved unreliable.)
+                        quitting.AddRange(Process.GetProcessesByName("POWERPNT"));
                         app.Quit();
                     }
                 }
@@ -198,14 +200,13 @@ public static class PresentationConverter
                 // Wait until it has really gone: PowerPoint takes a few seconds to close, and asking
                 // for it in the meantime (the next conversion, the show) attaches to the instance
                 // that is closing, which answers only with errors.
-                if (quitPid > 0)
+                foreach (var closing in quitting)
                 {
-                    try
+                    using (closing)
                     {
-                        using var closing = Process.GetProcessById(quitPid);
-                        if (!closing.WaitForExit(15000)) PlayerLog.Write("PowerPoint conversion: PowerPoint still closing after 15 s");
+                        try { if (!closing.WaitForExit(15000)) PlayerLog.Write("PowerPoint conversion: PowerPoint still closing after 15 s"); }
+                        catch { /* already gone */ }
                     }
-                    catch (ArgumentException) { /* already gone */ }
                 }
             }
         })

@@ -67,6 +67,29 @@ internal static class NativeWindows
     }
 
     /// <summary>The visible, titled top-level window of a process that fills the given screen rectangle.</summary>
+    public sealed record WindowInfo(IntPtr Handle, int ProcessId, string Class, string Title, ScreenBounds Rect)
+    {
+        public override string ToString()
+            => $"0x{Handle.ToInt64():X} pid {ProcessId} class={Class} [{Title}] {Rect.X},{Rect.Y} {Rect.Width}x{Rect.Height}";
+    }
+
+    /// <summary>The visible top-level windows of the given processes.</summary>
+    public static List<WindowInfo> VisibleWindows(ICollection<int> processIds)
+    {
+        var result = new List<WindowInfo>();
+        EnumWindows((hwnd, _) =>
+        {
+            GetWindowThreadProcessId(hwnd, out var pid);
+            if (!processIds.Contains(pid) || !IsWindowVisible(hwnd) || !GetWindowRect(hwnd, out var r)) return true;
+            var title = new StringBuilder(200);
+            GetWindowText(hwnd, title, title.Capacity);
+            result.Add(new WindowInfo(hwnd, pid, ClassName(hwnd), title.ToString(),
+                new ScreenBounds(r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top)));
+            return true;
+        }, IntPtr.Zero);
+        return result;
+    }
+
     public static IntPtr FindFullScreenWindow(int processId, ScreenBounds bounds)
     {
         var found = IntPtr.Zero;
