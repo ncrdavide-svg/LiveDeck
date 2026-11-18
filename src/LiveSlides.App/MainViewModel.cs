@@ -495,21 +495,94 @@ public partial class MainViewModel : ObservableObject
         if (IsLive && _index >= 0) _ = PrerenderAroundAsync(_showTicket);
     }
 
+    private ShowFile CurrentShow(string folder) => new()
+    {
+        Folder = folder,
+        Order = Decks.Select(d => d.Name).ToList(),
+        Disabled = Decks.Where(d => !d.IsEnabled).Select(d => d.Name).ToList(),
+        Tappo = ShowFile.MakeTappoReference(folder, TappoPath),
+        TappoAtStart = TappoAtStart,
+        TappoBetween = TappoBetween,
+        TappoAtEnd = TappoAtEnd,
+        FadeMs = FadeMs
+    };
+
+    // ---------------------------------------------------------------- .liveslides project files
+
+    private string? _projectPath;
+    /// <summary>The .liveslides file last saved or opened, used as the default name for «Salva…».</summary>
+    public string? ProjectPath { get => _projectPath; private set => Set(ref _projectPath, value); }
+
+    /// <summary>Saves the whole show (folder, order, ticks, tappo, fade) to a .liveslides file.</summary>
+    public bool SaveProject(string path)
+    {
+        if (Folder is null) { StatusMessage = "Scegli prima la cartella con le presentazioni"; return false; }
+        try
+        {
+            CurrentShow(Folder).SaveProject(path);
+            ProjectPath = path;
+            StatusMessage = "Show salvato in " + path;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            App.LogError(ex);
+            MessageBox.Show("Impossibile salvare lo show:\n" + ex.Message, "LiveSlides", MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
+        }
+    }
+
+    /// <summary>Opens a .liveslides file: its folder is loaded with the saved order and settings.</summary>
+    public async Task<bool> OpenProjectAsync(string path)
+    {
+        if (IsLive) { StatusMessage = "Ferma lo show (Esc) prima di aprirne un altro"; return false; }
+        ShowFile show;
+        try
+        {
+            show = ShowFile.LoadProject(path);
+        }
+        catch (Exception ex)
+        {
+            // Nothing has been touched yet: the show that was open stays as it is.
+            App.LogError(ex);
+            MessageBox.Show("Impossibile aprire lo show (file danneggiato o non valido):\n" + ex.Message,
+                "LiveSlides", MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
+        }
+
+        var folder = ShowFile.ResolveProjectFolder(path, show);
+        if (folder is null)
+        {
+            MessageBox.Show("Non trovo la cartella con le presentazioni di questo show:\n" + show.Folder +
+                            "\n\nMetti il file .liveslides nella cartella delle presentazioni e riaprilo, oppure scegli la cartella con «Cartella…».",
+                "LiveSlides", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
+        try
+        {
+            // The folder's own liveslides.json becomes this show, so LoadFolderAsync reads it back
+            // and every later change keeps being saved there as usual.
+            show.Save(folder);
+        }
+        catch (Exception ex)
+        {
+            App.LogError(ex);
+            StatusMessage = "Attenzione: impossibile aggiornare liveslides.json nella cartella: " + ex.Message;
+        }
+        await LoadFolderAsync(folder);
+        ProjectPath = path;
+        var missing = show.Order.Count(name => !File.Exists(Path.Combine(folder, name)));
+        StatusMessage = "Show aperto da " + path + (missing > 0 ? $" — ATTENZIONE: {missing} file non trovati nella cartella" : "");
+        return true;
+    }
+
     public void SaveShow()
     {
         if (Folder is null || _loadingShow) return;
         try
         {
-            new ShowFile
-            {
-                Order = Decks.Select(d => d.Name).ToList(),
-                Disabled = Decks.Where(d => !d.IsEnabled).Select(d => d.Name).ToList(),
-                Tappo = ShowFile.MakeTappoReference(Folder, TappoPath),
-                TappoAtStart = TappoAtStart,
-                TappoBetween = TappoBetween,
-                TappoAtEnd = TappoAtEnd,
-                FadeMs = FadeMs
-            }.Save(Folder);
+            CurrentShow(Folder).Save(Folder);
         }
         catch (Exception ex)
         {

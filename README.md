@@ -38,6 +38,7 @@ App per Windows della suite LIVE (con [LiveCue](https://github.com/ncrdavide-svg
 - Tre schermi, tipico del portatile: lo schermo del PC per l'operatore, uno per l'**uscita** a pieno schermo, uno per la **visualizzazione relatore** (slide attuale, successiva, note, tempo; con PDF e tappo ripete l'uscita).
 - Avanti/indietro da tastiera, da telecomando per presentazioni o da remoto (Bitfocus Companion / Stream Deck, API HTTP sulla porta 8788).
 - Scaletta con trascinamento, spunte per escludere un file, tappo all'inizio, tra le presentazioni e alla fine.
+- **Salva show… / Apri show…** (Ctrl+S / Ctrl+O): lo show (cartella, ordine, spunte, tappo, dissolvenza) si salva in un file `.liveslides`. Salvato dentro la cartella delle presentazioni, funziona anche copiando la cartella su un altro PC. L'ordine si salva comunque da solo in `liveslides.json` nella cartella.
 
 ## Sviluppo
 
