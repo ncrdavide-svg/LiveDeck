@@ -52,15 +52,15 @@ dotnet test
 ### Installer per altri PC
 
 ```
-powershell -ExecutionPolicy Bypass -File installer\build-installer.ps1 -Version 0.2.2
+powershell -ExecutionPolicy Bypass -File installer\build-installer.ps1 -Version 1.3.0
 ```
 
-Crea in `artifacts\installer\` sia `LiveSlides-Setup-0.2.2.exe` sia `LiveSlides-Setup.exe` (stesso file, nome fisso) — serve [Inno Setup 6](https://jrsoftware.org/isinfo.php): `winget install JRSoftware.InnoSetup`.
+Crea in `artifacts\installer\` sia `LiveSlides-Setup-1.3.0.exe` sia `LiveSlides-Setup.exe` (stesso file, nome fisso) — serve [Inno Setup 6](https://jrsoftware.org/isinfo.php): `winget install JRSoftware.InnoSetup`.
 
 Nella Release su GitHub vanno caricati **tutti e due**: il pulsante di download qui sopra punta a `releases/latest/download/LiveSlides-Setup.exe`, che funziona solo se l'ultima Release contiene il file con il nome fisso.
 
 ```
-gh release create v0.2.2 artifacts\installer\LiveSlides-Setup-0.2.2.exe artifacts\installer\LiveSlides-Setup.exe --title "LiveSlides 0.2.2" --notes "..."
+gh release create v1.3.0 artifacts\installer\LiveSlides-Setup-1.3.0.exe artifacts\installer\LiveSlides-Setup.exe --title "LiveSlides 1.3.0" --notes "..."
 ```
 
 ## Struttura

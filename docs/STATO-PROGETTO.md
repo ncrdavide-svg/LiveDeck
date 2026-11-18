@@ -85,5 +85,9 @@ Vecchie note sui video (player rimosso, restano solo come storia): pausa e riavv
 
 - Nome definitivo dell'app (ora "LiveSlides"). Logo fatto il 13 nov 2026 (`tools/make_icon.py`, stessa famiglia di LiveCue e LiveCount).
 - Installer: fatto il 13 nov 2026 (`installer/`, come LiveCue). Provato qui: installazione silenziosa "solo per me", avvio dell'app installata, disinstallazione pulita. Non provato su un altro PC.
-- Esportazione pagina Companion (presente nelle altre due app). La finestra "Buy Me a Coffee" a ogni avvio (QR + buymeacoffee.com/cin8, "No, grazie" dopo 3 s, `SupportWindow`, copiata da LiveCue) c'è dal 18 nov 2026: non ancora in una release.
+- Esportazione pagina Companion (presente nelle altre due app). La finestra "Buy Me a Coffee" a ogni avvio (QR + buymeacoffee.com/cin8, "No, grazie" dopo 3 s, `SupportWindow`, copiata da LiveCue) c'è dal 18 nov 2026 (versione 1.3.0).
 - Tasti globali (telecomando funzionante anche quando LiveSlides non ha il focus).
+
+## Versioni
+
+- **1.3.0** (18 nov 2026): prima versione «ufficiale» (tutta la suite LIVE ora è 1.x; dopo la 0.2.3 si è passati a 1.3.0). Novità: file di show `.liveslides` (Salva show / Apri show), finestra Buy Me a Coffee.
