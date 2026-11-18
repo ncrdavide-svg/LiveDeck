@@ -32,6 +32,8 @@ public partial class MainWindow : Window
         };
         Loaded += async (_, _) =>
         {
+            // Modal on purpose, as in LiveCue: a non-modal one ended up hidden behind this window.
+            new SupportWindow { Owner = this }.ShowDialog();
             // Reopen the last show folder, if it is still there.
             if (_viewModel.LastFolder is { } last && Directory.Exists(last))
                 await _viewModel.LoadFolderAsync(last);
