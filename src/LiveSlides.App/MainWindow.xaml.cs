@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
+using LiveSlides.Core;
 using Microsoft.Win32;
 
 namespace LiveSlides.App;
@@ -34,7 +35,11 @@ public partial class MainWindow : Window
         {
             // Modal on purpose, as in LiveCue: a non-modal one ended up hidden behind this window.
             new SupportWindow { Owner = this }.ShowDialog();
-            // Reopen the last show folder, if it is still there.
+            // "LiveSlides.exe show.liveslides" (Open with…, drag onto the exe) opens that show;
+            // otherwise reopen the last show folder, if it is still there.
+            var project = Environment.GetCommandLineArgs().Skip(1)
+                .FirstOrDefault(a => a.EndsWith(ShowFile.ProjectExtension, StringComparison.OrdinalIgnoreCase) && File.Exists(a));
+            if (project is not null && await _viewModel.OpenProjectAsync(project)) return;
             if (_viewModel.LastFolder is { } last && Directory.Exists(last))
                 await _viewModel.LoadFolderAsync(last);
         };
@@ -43,6 +48,12 @@ public partial class MainWindow : Window
     // Show keys work wherever the focus is in this window, except while typing in a text box.
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (Keyboard.Modifiers == ModifierKeys.Control && !_viewModel.IsLive && (e.Key == Key.S || e.Key == Key.O))
+        {
+            e.Handled = true;
+            if (e.Key == Key.S) SaveProject_Click(this, e); else OpenProject_Click(this, e);
+            return;
+        }
         if (Keyboard.FocusedElement is TextBox && e.Key != Key.Escape && e.Key != Key.F5) return;
         if (_viewModel.HandleKey(e.Key)) e.Handled = true;
     }
@@ -65,6 +76,35 @@ public partial class MainWindow : Window
         if (_viewModel.Folder is { } current && Directory.Exists(current)) dialog.InitialDirectory = current;
         if (dialog.ShowDialog(this) == true)
             await _viewModel.LoadFolderAsync(dialog.FolderName);
+    }
+
+    private const string ProjectFilter = "Show LiveSlides (*.liveslides)|*.liveslides|Tutti i file|*.*";
+
+    private async void OpenProject_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog { Title = "Apri show", Filter = ProjectFilter };
+        var near = _viewModel.ProjectPath is { } p ? Path.GetDirectoryName(p) : _viewModel.Folder;
+        if (near is not null && Directory.Exists(near)) dialog.InitialDirectory = near;
+        if (dialog.ShowDialog(this) == true)
+            await _viewModel.OpenProjectAsync(dialog.FileName);
+    }
+
+    private void SaveProject_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Folder is not { } folder) { _viewModel.StatusMessage = "Scegli prima la cartella con le presentazioni"; return; }
+        // Default: inside the show folder, so copying the folder to another PC carries the show along.
+        var dialog = new SaveFileDialog
+        {
+            Title = "Salva show",
+            Filter = ProjectFilter,
+            DefaultExt = ShowFile.ProjectExtension,
+            InitialDirectory = _viewModel.ProjectPath is { } p && Directory.Exists(Path.GetDirectoryName(p)) ? Path.GetDirectoryName(p) : folder,
+            FileName = _viewModel.ProjectPath is { } current
+                ? Path.GetFileName(current)
+                : Path.GetFileName(folder.TrimEnd('\\', '/')) + ShowFile.ProjectExtension
+        };
+        if (dialog.ShowDialog(this) == true)
+            _viewModel.SaveProject(dialog.FileName);
     }
 
     private async void Refresh_Click(object sender, RoutedEventArgs e) => await _viewModel.RefreshFolderAsync();

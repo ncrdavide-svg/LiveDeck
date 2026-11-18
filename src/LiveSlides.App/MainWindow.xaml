@@ -80,6 +80,10 @@
                 <Button DockPanel.Dock="Left" Content="📁  Cartella…" Click="ChooseFolder_Click" FontWeight="Bold"/>
                 <Button DockPanel.Dock="Left" Content="↻  Aggiorna" Click="Refresh_Click" IsEnabled="{Binding HasFolder}"
                         ToolTip="Rilegge la cartella: aggiunge i file nuovi e ricarica quelli modificati"/>
+                <Button DockPanel.Dock="Left" Content="📂  Apri show…" Click="OpenProject_Click" IsEnabled="{Binding IsNotLive}"
+                        ToolTip="Apre uno show salvato (file .liveslides) — Ctrl+O"/>
+                <Button DockPanel.Dock="Left" Content="💾  Salva show…" Click="SaveProject_Click" IsEnabled="{Binding HasFolder}"
+                        ToolTip="Salva cartella, ordine, spunte, tappo e dissolvenza in un file .liveslides — Ctrl+S"/>
 
                 <Button DockPanel.Dock="Right" Content="■  STOP  (Esc)" Click="Stop_Click" IsEnabled="{Binding IsLive}"
                         Background="{StaticResource StopRed}" Foreground="White" FontWeight="Bold" FontSize="15" Padding="18,10"/>
