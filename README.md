@@ -15,6 +15,8 @@
   Il pulsante scarica direttamente <code>LiveSlides-Setup.exe</code> · <a href="https://github.com/ncrdavide-svg/LiveSlides/releases">tutte le versioni e le novità</a>
 </p>
 
+> **Suite LIVE** · Con **[LiveSuite](https://github.com/ncrdavide-svg/LiveSuite)** installi e tieni aggiornate LiveCue, LiveSlides e LiveCount da un'unica piccola app (nessuna installazione): **[scarica LiveSuite.exe](https://github.com/ncrdavide-svg/LiveSuite/releases/latest/download/LiveSuite.exe)**.
+
 ---
 
 ## Come si installa
