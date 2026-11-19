@@ -1,4 +1,4 @@
-"""Generates src/LiveSlides.App/Assets/LiveSlides.ico (and a PNG preview).
+"""Generates src/LiveDeck.App/Assets/LiveDeck.ico (and a PNG preview).
 
 Same family as LiveCue's and LiveCount's icons (same dark tile, palette and proportions): two
 stacked slides, the front one carrying LiveCue's green GO "play" triangle, and under them a row
@@ -13,8 +13,8 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT_ICO = ROOT / "src" / "LiveSlides.App" / "Assets" / "LiveSlides.ico"
-OUT_PNG = ROOT / "src" / "LiveSlides.App" / "Assets" / "LiveSlides.png"
+OUT_ICO = ROOT / "src" / "LiveDeck.App" / "Assets" / "LiveDeck.ico"
+OUT_PNG = ROOT / "src" / "LiveDeck.App" / "Assets" / "LiveDeck.png"
 
 SUPERSAMPLE = 1024  # drawn at this size, then downscaled with Lanczos for smooth edges
 

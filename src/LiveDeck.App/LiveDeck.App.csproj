@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\LiveDeck.Core\LiveDeck.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\LiveDeck.ico" />
+    <Resource Include="Assets\LiveDeck.png" />
+    <Resource Include="Assets\BuyMeACoffeeQR.png" />
+    <!-- Run by LibreOffice's Python, not by us: written to the data folder at run time. -->
+    <EmbeddedResource Include="Assets\lo_bridge.py" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- The Windows 10 SDK target gives access to Windows.Data.Pdf, the PDF renderer built
+         into Windows 10/11: no third-party PDF library to ship. -->
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>LiveDeck</AssemblyName>
+    <Product>LiveDeck</Product>
+    <Version>1.4.0</Version>
+    <ApplicationIcon>Assets\LiveDeck.ico</ApplicationIcon>
+  </PropertyGroup>
+
+</Project>
