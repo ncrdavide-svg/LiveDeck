@@ -1,15 +1,15 @@
-# Builds artifacts\installer\LiveSlides-Setup-<version>.exe
+# Builds artifacts\installer\LiveDeck-Setup-<version>.exe
 # Requires: .NET 9 SDK, Inno Setup 6 (winget install JRSoftware.InnoSetup).
-# Usage: powershell -ExecutionPolicy Bypass -File installer\build-installer.ps1 [-Version 1.3.0]
+# Usage: powershell -ExecutionPolicy Bypass -File installer\build-installer.ps1 [-Version 1.4.0]
 param(
-    [string]$Version = "1.3.0"
+    [string]$Version = "1.4.0"
 )
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 # Published to a short temp path, as for LiveCue: keeps every file well under the 260-character
 # limit Inno Setup can read, whatever the checkout path.
-$publishDir = Join-Path ([IO.Path]::GetTempPath()) "LiveSlides-publish"
+$publishDir = Join-Path ([IO.Path]::GetTempPath()) "LiveDeck-publish"
 
 $iscc = @(
     (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source,
@@ -19,18 +19,18 @@ $iscc = @(
 ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 if (-not $iscc) { throw "Inno Setup 6 non trovato. Installalo con: winget install JRSoftware.InnoSetup" }
 
-Write-Host "Pubblicazione LiveSlides $Version (self-contained, win-x64)..."
+Write-Host "Pubblicazione LiveDeck $Version (self-contained, win-x64)..."
 if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
-dotnet publish (Join-Path $root "src\LiveSlides.App") -c Release -r win-x64 --self-contained true `
+dotnet publish (Join-Path $root "src\LiveDeck.App") -c Release -r win-x64 --self-contained true `
     -p:PublishReadyToRun=true -p:Version=$Version -o $publishDir -nologo
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish non riuscito" }
 
 Write-Host "Creazione installer..."
-& $iscc "/DAppVersion=$Version" "/DPublishDir=$publishDir" (Join-Path $PSScriptRoot "LiveSlides.iss")
+& $iscc "/DAppVersion=$Version" "/DPublishDir=$publishDir" (Join-Path $PSScriptRoot "LiveDeck.iss")
 if ($LASTEXITCODE -ne 0) { throw "Inno Setup non riuscito" }
 
-$setup = Join-Path $root "artifacts\installer\LiveSlides-Setup-$Version.exe"
+$setup = Join-Path $root "artifacts\installer\LiveDeck-Setup-$Version.exe"
 # Same file under a fixed name: the README's download button points to
-# releases/latest/download/LiveSlides-Setup.exe, so every release must carry it too.
-Copy-Item $setup (Join-Path $root "artifacts\installer\LiveSlides-Setup.exe") -Force
-Get-Item $setup, (Join-Path $root "artifacts\installer\LiveSlides-Setup.exe")
+# releases/latest/download/LiveDeck-Setup.exe, so every release must carry it too.
+Copy-Item $setup (Join-Path $root "artifacts\installer\LiveDeck-Setup.exe") -Force
+Get-Item $setup, (Join-Path $root "artifacts\installer\LiveDeck-Setup.exe")

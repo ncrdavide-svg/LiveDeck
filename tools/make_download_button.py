@@ -40,7 +40,7 @@ def main():
 
     big = ImageFont.truetype("segoeuib.ttf", 56)
     small = ImageFont.truetype("segoeui.ttf", 32)
-    d.text((176, 30), "SCARICA LIVESLIDES", font=big, fill=WHITE)
+    d.text((176, 30), "SCARICA LIVEDECK", font=big, fill=WHITE)
     d.text((178, 104), "Installer per Windows 10/11  ·  ultima versione", font=small, fill=(232, 255, 238))
 
     OUT.parent.mkdir(parents=True, exist_ok=True)

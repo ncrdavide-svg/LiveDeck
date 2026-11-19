@@ -1,4 +1,4 @@
-# LiveSlides — stato del progetto
+# LiveDeck — stato del progetto
 
 *Ultimo aggiornamento: 12 novembre 2026*
 
@@ -12,11 +12,11 @@ Prima versione (0.1.0) scritta in una sessione cloud (Linux). Compila senza erro
 - **Video in scaletta**: i file video (.mp4, .m4v, .mov, .wmv, .avi, .mkv, .mpg) sono voci della scaletta (etichetta VID). In uscita partono dall'inizio con l'audio, entrano in dissolvenza senza nero, alla fine resta l'ultimo fotogramma finché non si preme avanti. Provato: slide → video → tappo → video, tappo manuale sopra un video (al ritorno il video riparte da capo), avvio direttamente su un video.
 - **La scaletta scorre da sola** per tenere in vista il file in onda (provato con 30 file).
 - **Cartella `prova-show/`** (non in git): PowerPoint con animazioni e transizioni, PowerPoint con filmato incorporato, un video. Risultato atteso e confermato: animazioni e filmati *dentro* i PowerPoint escono come immagine fissa (vedi CLAUDE.md, «Insidie note»). I due .pptx sono generati con LibreOffice + XML scritto a mano: **non sono mai stati aperti in PowerPoint** (qui non c'è).
-- Variabile d'ambiente `LIVESLIDES_DATA` per avviare un'istanza di prova separata.
+- Variabile d'ambiente `LIVEDECK_DATA` per avviare un'istanza di prova separata.
 
 **12 nov 2026, terza parte — presentazioni riprodotte dal loro programma (richiesta dell'utente: il file del cliente deve andare esattamente come progettato, con le animazioni):**
 - I PowerPoint non vanno più in onda come immagini: li riproduce **PowerPoint** (se installato) o **LibreOffice Impress**, a schermo intero sotto la nostra finestra di uscita. Dettagli in CLAUDE.md.
-- **Provato con LibreOffice** su `prova-show/`, uscita sul secondo monitor, istanza separata: animazioni a ogni clic, transizioni, filmato dentro la slide che parte e scorre, tappo → presentazione e ritorno con dissolvenza vera (fotografata a metà), tappo manuale sopra la presentazione e ritorno, presentazione → presentazione senza tappo (resta l'ultimo fotogramma finché la successiva è pronta, ~1-2 s), indietro fino a rientrare nella presentazione precedente, pressioni rapide, stop e riavvio. La tastiera resta a LiveSlides. Nessun errore nel log.
+- **Provato con LibreOffice** su `prova-show/`, uscita sul secondo monitor, istanza separata: animazioni a ogni clic, transizioni, filmato dentro la slide che parte e scorre, tappo → presentazione e ritorno con dissolvenza vera (fotografata a metà), tappo manuale sopra la presentazione e ritorno, presentazione → presentazione senza tappo (resta l'ultimo fotogramma finché la successiva è pronta, ~1-2 s), indietro fino a rientrare nella presentazione precedente, pressioni rapide, stop e riavvio. La tastiera resta a LiveDeck. Nessun errore nel log.
 - **PowerPoint: codice scritto ma MAI provato** (qui non è installato). L'utente ha detto che il PC dello show avrà PowerPoint: è la prima cosa da provare lì.
 - Limiti noti: rientrando all'indietro in una presentazione si arriva all'ultima slide nel suo stato iniziale (non con le animazioni già fatte); alla prima apertura di ogni file la finestra di LibreOffice lampeggia un istante sullo schermo dell'operatore prima di ridursi a icona; slide nascoste non gestite (i numeri di slide potrebbero sfasarsi); sulla finestra di prova le presentazioni restano immagini fisse.
 - L'utente ha chiesto di **lasciare stare i video in scaletta** e concentrarsi su ppt e pdf: il codice video è rimasto com'è, non toccato.
@@ -42,9 +42,9 @@ Prima versione (0.1.0) scritta in una sessione cloud (Linux). Compila senza erro
 - **PowerPoint: vista relatore scritta ma mai provata.**
 - Da verificare dall'utente: con LibreOffice la console può comparire per un istante sullo schermo del portatile prima di essere spostata.
 
-**13 nov 2026, terza parte — tastiera rubata (l'utente: quando si apre una presentazione in attesa in sottofondo, la finestra di LiveSlides perde il fuoco e le frecce / l'avanzatore non mandano più avanti):**
+**13 nov 2026, terza parte — tastiera rubata (l'utente: quando si apre una presentazione in attesa in sottofondo, la finestra di LiveDeck perde il fuoco e le frecce / l'avanzatore non mandano più avanti):**
 - Riprodotto: appena avviato lo show, LibreOffice carica in sottofondo la prima presentazione e la sua finestra (ridotta a icona) si prende la tastiera per sempre.
-- Corretto con `FocusGuard`: durante lo show LiveSlides si riprende subito la tastiera se un programma di presentazione la prende senza che l'operatore abbia cliccato o usato Alt+Tab. Prova con tasti veri: prima 0 su 18, ora 18 su 18.
+- Corretto con `FocusGuard`: durante lo show LiveDeck si riprende subito la tastiera se un programma di presentazione la prende senza che l'operatore abbia cliccato o usato Alt+Tab. Prova con tasti veri: prima 0 su 18, ora 18 su 18.
 - Non provato: telecomando fisico (manda gli stessi tasti PagSu/PagGiù), PowerPoint.
 
 **13 nov 2026, quarta parte — il messaggio «In attesa della connessione alla stampante...» (l'utente lo vedeva a ogni operazione):**
@@ -59,7 +59,7 @@ Prima versione (0.1.0) scritta in una sessione cloud (Linux). Compila senza erro
 - Scartati con motivazione: vedi CLAUDE.md, «Insidie note».
 - La conversione e la riproduzione con PowerPoint restano mai provate (qui PowerPoint non c'è).
 
-**17 nov 2026 — prima prova con PowerPoint (su un altro PC, versione 0.2.1): non funziona.** Niente animazioni, e sul terzo schermo la stessa immagine dell'uscita invece della visualizzazione relatore. Con ogni probabilità la riproduzione con PowerPoint falliva e l'app ripiegava sulle immagini fisse. Nella 0.2.2: correzioni delle cause probabili (vedi CLAUDE.md) e registro dettagliato `player.log`. **Prossimo passo: l'utente prova la 0.2.2 sul PC con PowerPoint e manda `player.log` ed `errors.log`** da `%LOCALAPPDATA%\LiveSlides`.
+**17 nov 2026 — prima prova con PowerPoint (su un altro PC, versione 0.2.1): non funziona.** Niente animazioni, e sul terzo schermo la stessa immagine dell'uscita invece della visualizzazione relatore. Con ogni probabilità la riproduzione con PowerPoint falliva e l'app ripiegava sulle immagini fisse. Nella 0.2.2: correzioni delle cause probabili (vedi CLAUDE.md) e registro dettagliato `player.log`. **Prossimo passo: l'utente prova la 0.2.2 sul PC con PowerPoint e manda `player.log` ed `errors.log`** da `%LOCALAPPDATA%\LiveDeck`.
 
 **17 nov 2026, seconda prova con PowerPoint (0.2.2)**: dai registri, PowerPoint si avvia, carica (13 slide in 0,6 s) e fa partire lo show, poi la richiesta della sua finestra (`SlideShowWindow.HWND`) fallisce e l'app ripiega sulle immagini fisse. Gli errori «Server RPC non disponibile» della 0.2.1 non ci sono più. Nella 0.2.3 la finestra si cerca tra quelle di PowerPoint invece di chiederla a PowerPoint. **Prossimo passo: prova della 0.2.3 sul PC con PowerPoint, poi di nuovo `player.log`.**
 
@@ -83,11 +83,11 @@ Vecchie note sui video (player rimosso, restano solo come storia): pausa e riavv
 
 ## Non ancora fatto
 
-- Nome definitivo dell'app (ora "LiveSlides"). Logo fatto il 13 nov 2026 (`tools/make_icon.py`, stessa famiglia di LiveCue e LiveCount).
+- Nome definitivo dell'app (ora "LiveDeck"). Logo fatto il 13 nov 2026 (`tools/make_icon.py`, stessa famiglia di LiveCue e LiveCount).
 - Installer: fatto il 13 nov 2026 (`installer/`, come LiveCue). Provato qui: installazione silenziosa "solo per me", avvio dell'app installata, disinstallazione pulita. Non provato su un altro PC.
 - Esportazione pagina Companion (presente nelle altre due app). La finestra "Buy Me a Coffee" a ogni avvio (QR + buymeacoffee.com/cin8, "No, grazie" dopo 3 s, `SupportWindow`, copiata da LiveCue) c'è dal 18 nov 2026 (versione 1.3.0).
-- Tasti globali (telecomando funzionante anche quando LiveSlides non ha il focus).
+- Tasti globali (telecomando funzionante anche quando LiveDeck non ha il focus).
 
 ## Versioni
 
-- **1.3.0** (18 nov 2026): prima versione «ufficiale» (tutta la suite LIVE ora è 1.x; dopo la 0.2.3 si è passati a 1.3.0). Novità: file di show `.liveslides` (Salva show / Apri show), finestra Buy Me a Coffee.
+- **1.3.0** (18 nov 2026): prima versione «ufficiale» (tutta la suite LIVE ora è 1.x; dopo la 0.2.3 si è passati a 1.3.0). Novità: file di show `.livedeck` (Salva show / Apri show), finestra Buy Me a Coffee.
