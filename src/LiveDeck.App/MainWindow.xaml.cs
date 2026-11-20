@@ -34,7 +34,8 @@ public partial class MainWindow : Window
         Loaded += async (_, _) =>
         {
             // Modal on purpose, as in LiveCue: a non-modal one ended up hidden behind this window.
-            new SupportWindow { Owner = this }.ShowDialog();
+            // Supporters (valid sostenitore.txt, see SupporterCode) don't get it at all.
+            if (SupporterCode.FindSupporter() == null) new SupportWindow { Owner = this }.ShowDialog();
             // "LiveDeck.exe show.livedeck" (Open with…, drag onto the exe) opens that show, also a
             // .liveslides saved before the rename; otherwise reopen the last show folder, if still there.
             var project = Environment.GetCommandLineArgs().Skip(1)
